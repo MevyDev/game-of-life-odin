@@ -85,8 +85,9 @@ update_board :: proc(old_board: Board, new_board: Board) {
 	for x in 0 ..< width {
 		for y in 0 ..< height {
 			idx := pos_to_idx(old_board, Pos{x, y})
+			neighbors := neighbor_count(old_board, Pos{x, y})
 
-			switch neighbor_count(old_board, Pos{x, y}) {
+			switch neighbors {
 			case 2:
 				new_board.data[idx] = old_board.data[idx]
 			case 3:
@@ -126,7 +127,7 @@ neighbor_count :: proc(board: Board, pos: Pos) -> i32 {
 
 	count: i32 = 0
 
-	offsets: [8]Offset = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, -1}}
+	offsets: [8]Offset = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}
 
 	for offset in offsets {
 		offset_pos := apply_offset(board, pos, offset)
