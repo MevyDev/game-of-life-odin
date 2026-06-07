@@ -43,6 +43,8 @@ Input :: struct {
 	mouse_tile_pos:     Pos,
 	left_mouse_button:  bool,
 	right_mouse_button: bool,
+	toggle_pause:       bool,
+	should_exit:        bool,
 }
 
 
@@ -52,6 +54,7 @@ Game :: struct {
 	tick_rate: time.Duration,
 	last_tick: time.Time,
 	colors:    [Tile]rl.Color,
+	paused:    bool,
 }
 
 
@@ -144,6 +147,8 @@ input_processing :: proc(input: ^Input, game: ^Game) {
 	input.mouse_tile_pos = Pos{mouse_tile_x, mouse_tile_y}
 	input.left_mouse_button = rl.IsMouseButtonDown(.LEFT)
 	input.right_mouse_button = rl.IsMouseButtonDown(.RIGHT)
+	input.toggle_pause = rl.IsKeyPressed(.SPACE)
+	input.should_exit = rl.IsKeyPressed(.ESCAPE)
 }
 
 cursor_render :: proc(game: ^Game, pos: Pos, color: rl.Color) {
@@ -164,12 +169,7 @@ main :: proc() {
 		tick_rate = 250 * time.Millisecond,
 		last_tick = time.now(),
 		colors = {.Empty = rl.PINK, .Full = rl.SKYBLUE},
-	}
-
-	for idx: i32 = 0; idx < game.board.width * game.board.height; idx += 1 {
-		if rand.float32() > 0.8 {
-			game.board.data[idx] = .Full
-		}
+		paused = true,
 	}
 
 	rl.InitWindow(
@@ -194,8 +194,11 @@ main :: proc() {
 		if (input.right_mouse_button) {
 			game.board.data[pos_to_idx(game.board, input.mouse_tile_pos)] = .Empty
 		}
+		if (input.toggle_pause) {
+			game.paused = !game.paused
+		}
 
-		if time.since(game.last_tick) >= game.tick_rate {
+		if !game.paused && time.since(game.last_tick) >= game.tick_rate {
 			game.last_tick = time.now()
 			update_board(game.board, new_board)
 
