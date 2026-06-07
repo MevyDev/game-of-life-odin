@@ -40,8 +40,7 @@ Pos :: struct {
 
 
 Input :: struct {
-	mouse_tile_x:       i32,
-	mouse_tile_y:       i32,
+	mouse_tile_pos:     Pos,
 	left_mouse_button:  bool,
 	right_mouse_button: bool,
 }
@@ -140,18 +139,29 @@ neighbor_count :: proc(board: Board, pos: Pos) -> i32 {
 input_processing :: proc(input: ^Input, game: ^Game) {
 	m_x_fl := f32(rl.GetMouseX())
 	m_y_fl := f32(rl.GetMouseY())
-	input.mouse_tile_x = i32(m_x_fl / f32(game.window.width) * f32(game.board.width))
-	input.mouse_tile_y = i32(m_y_fl / f32(game.window.height) * f32(game.board.height))
-	input.left_mouse_button = rl.IsMouseButtonPressed(.LEFT)
-	input.right_mouse_button = rl.IsMouseButtonPressed(.RIGHT)
+	mouse_tile_x := i32(m_x_fl / f32(game.window.width) * f32(game.board.width))
+	mouse_tile_y := i32(m_y_fl / f32(game.window.height) * f32(game.board.height))
+	input.mouse_tile_pos = Pos{mouse_tile_x, mouse_tile_y}
+	input.left_mouse_button = rl.IsMouseButtonDown(.LEFT)
+	input.right_mouse_button = rl.IsMouseButtonDown(.RIGHT)
 }
 
+cursor_render :: proc(game: ^Game, pos: Pos, color: rl.Color) {
+	rect: rl.Rectangle = {
+		x      = f32(pos.x) * (f32(game.window.width) / f32(game.board.width)),
+		y      = f32(pos.y) * (f32(game.window.height) / f32(game.board.height)),
+		width  = (f32(game.window.width) / f32(game.board.width)),
+		height = (f32(game.window.height) / f32(game.board.height)),
+	}
+
+	rl.DrawRectangleRec(rect, color)
+}
 
 main :: proc() {
 	game := Game {
 		board = Board{60, 60, make([]Tile, 60 * 60)},
 		window = Window{width = 720, height = 720, title = "Odin Game of Life", fps = 60},
-		tick_rate = 1000 * time.Millisecond,
+		tick_rate = 250 * time.Millisecond,
 		last_tick = time.now(),
 		colors = {.Empty = rl.PINK, .Full = rl.SKYBLUE},
 	}
@@ -178,6 +188,13 @@ main :: proc() {
 
 		input_processing(&input, &game)
 
+		if (input.left_mouse_button) {
+			game.board.data[pos_to_idx(game.board, input.mouse_tile_pos)] = .Full
+		}
+		if (input.right_mouse_button) {
+			game.board.data[pos_to_idx(game.board, input.mouse_tile_pos)] = .Empty
+		}
+
 		if time.since(game.last_tick) >= game.tick_rate {
 			game.last_tick = time.now()
 			update_board(game.board, new_board)
@@ -191,5 +208,6 @@ main :: proc() {
 
 		rl.ClearBackground(rl.BLUE)
 		game_render(&game)
+		cursor_render(&game, input.mouse_tile_pos, rl.WHITE)
 	}
 }
